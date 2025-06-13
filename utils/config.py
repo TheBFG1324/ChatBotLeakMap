@@ -1,27 +1,39 @@
 # File: config.py
 # This file holds configuration details
+
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file if present
+# Load environment variables from a .env file if present
 load_dotenv()
 
 # OpenAI API key
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 # Neo4j connection details
-env_uri = os.getenv("NEO4J_URI")
-env_user = os.getenv("NEO4J_USER")
-env_password = os.getenv("NEO4J_PASSWORD")
+NEO4J_URI = os.getenv("NEO4J_URI")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
-if not all([OPENAI_API_KEY, env_uri, env_user, env_password]):
-    missing = [name for name, val in [
-        ("OPENAI_API_KEY", OPENAI_API_KEY),
-        ("NEO4J_URI", env_uri),
-        ("NEO4J_USER", env_user),
-        ("NEO4J_PASSWORD", env_password)
-    ] if not val]
+# System prompts for chatbots and checker
+BTCBANK_PROMPT = os.getenv("BTCBANK_PROMPT")
+MEDICORP_PROMPT = os.getenv("MEDICORP_PROMPT")
+KUEDU_PROMPT = os.getenv("KUEDU_PROMPT")
+CHECKER_PROMPT = os.getenv("CHECKER_PROMPT")
+
+# Validate required environment variables
+required_vars = {
+    "OPENAI_API_KEY": OPENAI_API_KEY,
+    "NEO4J_URI": NEO4J_URI,
+    "NEO4J_USER": NEO4J_USER,
+    "NEO4J_PASSWORD": NEO4J_PASSWORD,
+    "BTCBANK_PROMPT": BTCBANK_PROMPT,
+    "MEDICORP_PROMPT": MEDICORP_PROMPT,
+    "KUEDU_PROMPT": KUEDU_PROMPT,
+    "CHECKER_PROMPT": CHECKER_PROMPT
+}
+
+missing = [key for key, value in required_vars.items() if not value]
+
+if missing:
     raise EnvironmentError(f"Missing environment variables: {', '.join(missing)}")
-
-NEO4J_URI = env_uri
-NEO4J_USER = env_user
-NEO4J_PASSWORD = env_password
