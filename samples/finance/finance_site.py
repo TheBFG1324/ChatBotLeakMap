@@ -17,7 +17,18 @@ HTML_FINANCE = '''
     <textarea id="input"></textarea>
     <button onclick="send()">Send</button>
   </div>
-  <script src="/chat"></script>
+  <script>
+    async function send() {
+      const input = document.getElementById("input").value;
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input })
+      });
+      const data = await res.json();
+      alert("Response: " + data.response);
+    }
+  </script>
 </body>
 </html>
 '''
