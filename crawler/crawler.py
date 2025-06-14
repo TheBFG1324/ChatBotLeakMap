@@ -36,15 +36,16 @@ class ChatbotCrawler:
 
     # If a page has a chatbot it discovers the chatbot url
     def extract_api_url(self, html: str, base_url: str) -> str:
-        m = re.search(r'(https?://[^" ]+/chat)', html)
-        if m:
-            return m.group(1)
-       
-        m = re.search(r'["\'](/[^"\']*/chat)["\']', html)
-        if m:
-            return urljoin(base_url, m.group(1))
-        
-        return base_url
+        soup = BeautifulSoup(html, "html.parser")
+
+        for script in soup.find_all("script"):
+            if script.string:
+                match = re.search(r"fetch\(['\"](/[^'\"]*chat)[\"']", script.string)
+                if match:
+                    return urljoin(base_url, match.group(1))
+
+        parsed = urlparse(base_url)
+        return f"{parsed.scheme}://{parsed.netloc}/chat"
 
     # Generate the bot id
     def generate_bot_id(self, api_url: str) -> str:
@@ -95,3 +96,14 @@ class ChatbotCrawler:
 
         self.driver.close()
         return found
+
+
+urls = [
+    "http://localhost:5010/",  # BTCBank
+    "http://localhost:5011/",  # Medicorp
+    "http://localhost:5009/"   # KuEdu
+]
+
+crwl = ChatbotCrawler(urls)
+output = crwl.discover_and_register()
+print(output)

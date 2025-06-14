@@ -17,10 +17,22 @@ HTML_EDU = '''
     <textarea id="chat_input"></textarea>
     <button onclick="postMsg()">Send</button>
   </div>
-  <script src="/chat"></script>
+  <script>
+    async function postMsg() {
+      const input = document.getElementById("chat_input").value;
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input })
+      });
+      const data = await res.json();
+      alert("Response: " + data.response);
+    }
+  </script>
 </body>
 </html>
 '''
+
 # Setup local context tracker
 context = []
 context_limit = 10

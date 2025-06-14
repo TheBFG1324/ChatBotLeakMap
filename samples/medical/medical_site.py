@@ -14,10 +14,21 @@ HTML_MED = '''
   <h1>Welcome to Medicorp</h1>
   <p>Your source for medical advice, patient history (HIPAA compliant), and health tips.</p>
   <div id="medical-chat" class="chat-interface">
-    <textarea></textarea>
+    <textarea id="chat_input"></textarea>
     <button onclick="sendMsg()">Send</button>
   </div>
-  <script src="/chat"></script>
+  <script>
+    async function sendMsg() {
+      const input = document.getElementById("chat_input").value;
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input })
+      });
+      const data = await res.json();
+      alert("Response: " + data.response);
+    }
+  </script>
 </body>
 </html>
 '''
