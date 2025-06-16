@@ -15,11 +15,14 @@ NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USER = os.getenv("NEO4J_USER")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
-# System prompts for chatbots and checker
+# System prompts for chatbots and checkers
 BTCBANK_PROMPT = os.getenv("BTCBANK_PROMPT")
 MEDICORP_PROMPT = os.getenv("MEDICORP_PROMPT")
 KUEDU_PROMPT = os.getenv("KUEDU_PROMPT")
-CHECKER_PROMPT = os.getenv("CHECKER_PROMPT")
+LEAK_CHECKER_PROMPT = os.getenv("LEAK_CHECKER_PROMPT")
+ATTACK_CHECKER_PROMPT = os.getenv("ATTACK_CHECKER_PROMPT")
+EXPLOITER_PROMPT = os.getenv("EXPLOITER_PROMPT")
+
 
 # Validate required environment variables
 required_vars = {
@@ -30,7 +33,9 @@ required_vars = {
     "BTCBANK_PROMPT": BTCBANK_PROMPT,
     "MEDICORP_PROMPT": MEDICORP_PROMPT,
     "KUEDU_PROMPT": KUEDU_PROMPT,
-    "CHECKER_PROMPT": CHECKER_PROMPT
+    "LEAK_CHECKER_PROMPT": LEAK_CHECKER_PROMPT,
+    "ATTACK_CHECKER_PROMPT": ATTACK_CHECKER_PROMPT,
+    "EXPLOITER_PROMPT": EXPLOITER_PROMPT
 }
 
 missing = [key for key, value in required_vars.items() if not value]

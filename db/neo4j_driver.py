@@ -1,10 +1,8 @@
 # File: neo4j_driver.py
 # This File handles all neo4j interactions for the exploitation script
 from neo4j import GraphDatabase
-import logging
 from utils.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
-logger = logging.getLogger(__name__)
 
 # Neo4jDriver class holds all functionality to interact and get information from local Neo4j database
 class Neo4jDriver:
@@ -28,7 +26,6 @@ class Neo4jDriver:
         '''
         with self._driver.session() as session:
             session.run(cypher, bot_id=bot_id, name=name, type=type_, url=url)
-        logger.debug(f"Upserted Bot {{id={bot_id}}}")
 
     # Insert a chain node
     def create_chain(self, chain_id: str, bot_id: str, timestamp: str, temperature: float, mode: str):
@@ -53,23 +50,21 @@ class Neo4jDriver:
                 temperature=temperature,
                 mode=mode
             )
-        logger.debug(f"Created Chain {{id={chain_id}}} for Bot {{id={bot_id}}}")
 
-    # Create a prompt node
+    # Creates a new prompt node
     def get_or_create_prompt(self, prompt_id: str, text: str) -> str:
         cypher = '''
         MERGE (p:Prompt {id: $prompt_id})
         SET p.text = $text
-        RETURN p.id AS id
+        RETURN p.id AS id, p.text AS text
         '''
         with self._driver.session() as session:
             result = session.run(cypher, prompt_id=prompt_id, text=text)
             record = result.single()
-            prompt_id = record["id"] if record else None
-        logger.debug(f"Upserted Prompt {{id={prompt_id}}}")
-        return prompt_id
+            pid = record["id"] if record else None
+        return pid
 
-    # Create a response node
+    # Creates a new response node
     def get_or_create_response(self, response_id: str, text: str, timestamp: str, embedding: list) -> str:
         cypher = '''
         MERGE (r:Response {id: $response_id})
@@ -87,9 +82,9 @@ class Neo4jDriver:
                 embedding=embedding
             )
             record = result.single()
-            resp_id = record["id"] if record else None
-        logger.debug(f"Upserted Response {{id={resp_id}}}")
-        return resp_id
+            rid = record["id"] if record else None
+        return rid
+
 
     # Link a prompt to a chain
     def link_step(self, chain_id: str, prompt_id: str, step_number: int):
@@ -99,7 +94,6 @@ class Neo4jDriver:
         '''
         with self._driver.session() as session:
             session.run(cypher, chain_id=chain_id, prompt_id=prompt_id, step_number=step_number)
-        logger.debug(f"Linked Chain {{id={chain_id}}} -> Prompt {{id={prompt_id}}} at step {step_number}")
 
     # Link a result to a chain
     def link_result(self, prompt_id: str, response_id: str):
@@ -109,7 +103,6 @@ class Neo4jDriver:
         '''
         with self._driver.session() as session:
             session.run(cypher, prompt_id=prompt_id, response_id=response_id)
-        logger.debug(f"Linked Prompt {{id={prompt_id}}} -> Response {{id={response_id}}}")
 
     # Mark a chain as successful
     def mark_chain_success(self, chain_id: str, response_id: str):
@@ -120,20 +113,17 @@ class Neo4jDriver:
         '''
         with self._driver.session() as session:
             session.run(cypher, chain_id=chain_id, response_id=response_id)
-        logger.info(f"Chain {{id={chain_id}}} marked successful at Response {{id={response_id}}}")
 
     # Finds the recommended best continuation
-    def find_best_match(self, embedding: list, threshold: float, bot_type: str, limit: int = 1):
+    def find_best_match(self, embedding: list, threshold: float, bot_type: str, limit: int = 1) -> dict:
         cypher = '''
-        WITH $embedding AS emb, $threshold AS t, $bot_type AS bt
-        CALL db.index.vector.cosineSimilarity(
-            'responseEmbeddingIdx', emb
-        ) YIELD node AS r, similarity
+        CALL db.index.vector.queryNodes('responseEmbeddingIdx', $limit, $embedding)
+        YIELD node AS r, score AS similarity
         MATCH (r)<-[:RESULTED_IN]-(p:Prompt)<-[:STEP]-(c:Chain)
-        WHERE similarity > t
-          AND (c)-[:TARGETED_IN]->(:Bot {type: bt})
-          AND c.success = true
-        RETURN p.id AS prompt_id, similarity
+        WHERE similarity > $threshold
+        AND (c)-[:TARGETED_IN]->(:Bot {type: $bot_type})
+        AND c.success = true
+        RETURN p.id AS prompt_id, p.text AS prompt_text, similarity
         ORDER BY similarity DESC
         LIMIT $limit
         '''
@@ -146,6 +136,10 @@ class Neo4jDriver:
                 limit=limit
             )
             record = result.single()
-        match = dict(record) if record else None
-        logger.debug(f"Best match for bot_type={bot_type}: {match}")
-        return match
+        if record:
+            return {
+                "prompt_id": record["prompt_id"],
+                "prompt_text": record["prompt_text"],
+                "similarity": record["similarity"]
+            }
+        return None

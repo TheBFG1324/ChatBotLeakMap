@@ -97,13 +97,3 @@ class ChatbotCrawler:
         self.driver.close()
         return found
 
-
-urls = [
-    "http://localhost:5010/",  # BTCBank
-    "http://localhost:5011/",  # Medicorp
-    "http://localhost:5009/"   # KuEdu
-]
-
-crwl = ChatbotCrawler(urls)
-output = crwl.discover_and_register()
-print(output)
