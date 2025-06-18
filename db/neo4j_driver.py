@@ -115,9 +115,9 @@ class Neo4jDriver:
             session.run(cypher, chain_id=chain_id, response_id=response_id)
 
     # Finds similar responses and recommends next best prompt for attack
-    def suggested_next_prompt(self, embedding: list, bot_type: str, threshold: float = 0.7, limit: int = 50) -> dict:
+    def suggested_next_prompt(self, embedding: list, bot_type: str, threshold: float = 0.7, limit: int = 1, n_neighbors_limit: int = 50) -> dict:
         cypher = '''
-        CALL db.index.vector.queryNodes('responseEmbeddingIdx', $limit, $embedding)
+        CALL db.index.vector.queryNodes('responseEmbeddingIdx', $n_neighbors_limit, $embedding)
         YIELD node AS r, score AS similarity
 
         MATCH 
@@ -137,7 +137,7 @@ class Neo4jDriver:
           similarity
 
         ORDER BY similarity DESC
-        LIMIT 1
+        LIMIT $limit
         '''
     
         with self._driver.session() as session:
@@ -146,7 +146,8 @@ class Neo4jDriver:
                 embedding=embedding,
                 bot_type=bot_type,
                 threshold=threshold,
-                limit=limit
+                limit=limit,
+                n_neighbors_limit=n_neighbors_limit
             )
             record = result.single()
         if record:
