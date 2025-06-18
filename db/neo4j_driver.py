@@ -114,25 +114,38 @@ class Neo4jDriver:
         with self._driver.session() as session:
             session.run(cypher, chain_id=chain_id, response_id=response_id)
 
-    # Finds the recommended best continuation
-    def find_best_match(self, embedding: list, threshold: float, bot_type: str, limit: int = 1) -> dict:
+    # Finds similar responses and recommends next best prompt for attack
+    def suggested_next_prompt(self, embedding: list, bot_type: str, threshold: float = 0.7, limit: int = 50) -> dict:
         cypher = '''
         CALL db.index.vector.queryNodes('responseEmbeddingIdx', $limit, $embedding)
         YIELD node AS r, score AS similarity
-        MATCH (r)<-[:RESULTED_IN]-(p:Prompt)<-[:STEP]-(c:Chain)
-        WHERE similarity > $threshold
-        AND (c)-[:TARGETED_IN]->(:Bot {type: $bot_type})
-        AND c.success = true
-        RETURN p.id AS prompt_id, p.text AS prompt_text, similarity
+
+        MATCH 
+          (r)<-[:RESULTED_IN]-(p:Prompt)<-[s:STEP]-(c:Chain)<-[:TARGETED_IN]-(b:Bot {type: $bot_type})
+
+        MATCH 
+          (c)-[nextStep:STEP]->(nextPrompt:Prompt)
+
+        WHERE
+          similarity >= $threshold
+          AND c.success = true
+          AND nextStep.step_number = s.step_number + 1
+
+        RETURN
+          nextPrompt.id         AS prompt_id,
+          nextPrompt.text       AS prompt_text,
+          similarity
+
         ORDER BY similarity DESC
-        LIMIT $limit
+        LIMIT 1
         '''
+    
         with self._driver.session() as session:
             result = session.run(
                 cypher,
                 embedding=embedding,
-                threshold=threshold,
                 bot_type=bot_type,
+                threshold=threshold,
                 limit=limit
             )
             record = result.single()
@@ -143,3 +156,16 @@ class Neo4jDriver:
                 "similarity": record["similarity"]
             }
         return None
+
+    # Links created prompt to past prompt that was inspiration
+    def link_reference(self, prompt_id: str, referenced_prompt_id: str):
+        cypher = '''
+        MATCH (p:Prompt {id: $prompt_id}), (ref:Prompt {id: $referenced_prompt_id})
+        MERGE (p)-[:REFERENCED]->(ref)
+        '''
+        with self._driver.session() as session:
+            session.run(
+                cypher,
+                prompt_id=prompt_id,
+                referenced_prompt_id=referenced_prompt_id
+            )
