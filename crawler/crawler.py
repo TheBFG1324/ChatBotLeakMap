@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 
 from crawler.classifier import classify_bot
-from db.neo4j_driver import Neo4jDriver
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,6 @@ logger = logging.getLogger(__name__)
 class ChatbotCrawler:
     def __init__(self, urls: list[str]):
         self.urls = urls
-        self.driver = Neo4jDriver()
 
     # detects if a webpage has a chatbot
     def detect_chatbot(self, html: str) -> bool:
@@ -82,18 +80,11 @@ class ChatbotCrawler:
                 bot_id = self.generate_bot_id(api_url)
                 bot_name = self.generate_bot_name(api_url)
 
-                # Register in Neo4j
-                self.driver.insert_bot(bot_id, bot_name, domain, api_url)
-                logger.info(
-                    f"Registered bot '{bot_name}' (id={bot_id}) domain='{domain}' api_url='{api_url}'"
-                )
-
                 # Append to found list
                 found.append({"bot_id": bot_id, "bot_name": bot_name, "domain": domain, "api_url": api_url})
 
             except Exception as e:
                 logger.error(f"Error crawling {url}: {e}")
 
-        self.driver.close()
         return found
 
