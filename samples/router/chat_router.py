@@ -3,7 +3,7 @@
 
 from openai import OpenAI
 from utils.config import OPENAI_API_KEY, BTCBANK_PROMPT, MEDICORP_PROMPT, KUEDU_PROMPT
-import json
+from utils.chat_context import ChatMessageBuilder
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -18,18 +18,18 @@ def run_chatbot(bot_type: str, message: str, context: list, model: str = "gpt-4"
     if bot_type not in SYSTEM_PROMPTS or not SYSTEM_PROMPTS[bot_type]:
         return {"error": f"Missing or invalid system prompt for bot type '{bot_type}'."}
 
+    # Initialize builder with system prompt + prior context
     system_prompt = SYSTEM_PROMPTS[bot_type]
+    builder = ChatMessageBuilder(
+        system_prompt=system_prompt,
+        context_entries=context
+    )
 
-    # Build conversation history
-    messages = [{"role": "system", "content": system_prompt}]
-    
-    # Add prior context (prompt/response pairs)
-    for entry in sorted(context, key=lambda x: x["message_number"]):
-        messages.append({"role": "user", "content": entry["prompt"]})
-        messages.append({"role": "assistant", "content": entry["response"]})
+    # Append the new user message
+    builder.append_message("user", message)
 
-    # Add new user message
-    messages.append({"role": "user", "content": message})
+    # Render messages in alternating user/assistant style
+    messages = builder.as_user_assistant()
 
     # Call the model
     response = client.chat.completions.create(
