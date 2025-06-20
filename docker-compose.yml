@@ -1,0 +1,105 @@
+services:
+  # -------------------------------------------------------------------
+  # Neo4j database with persistent storage
+  neo4j:
+    image: neo4j:5.15
+    volumes:
+      - neo4j-data:/data
+    ports:
+      - "7474:7474"   # HTTP
+      - "7687:7687"   # Bolt
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PASSWORD}
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "${NEO4J_USER}", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # -------------------------------------------------------------------
+  # Initialize vector index in Neo4j
+  neo4j_init:
+    build: .
+    entrypoint: ["python", "-m", "scripts.setup_neo4j"]
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=${NEO4J_USER}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+
+  # -------------------------------------------------------------------
+  # Load mock prompt-injection data into Neo4j
+  mock_data:
+    build: .
+    entrypoint: ["python", "-m", "scripts.mock_data"]
+    depends_on:
+      - neo4j_init
+    env_file:
+      - .env
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=${NEO4J_USER}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+  
+
+  # -------------------------------------------------------------------
+  # Educational chatbot API
+  educational:
+    build: .
+    command: python -m samples.educational.educational_site
+    ports:
+      - "5009:5009"
+    env_file:
+      - .env
+
+  # -------------------------------------------------------------------
+  # Finance chatbot API
+  finance:
+    build: .
+    command: python -m samples.finance.finance_site
+    ports:
+      - "5010:5010"
+    env_file:
+      - .env
+
+  # -------------------------------------------------------------------
+  # Medical chatbot API
+  medical:
+    build: .
+    command: python -m samples.medical.medical_site
+    ports:
+      - "5011:5011"
+    env_file:
+      - .env
+
+  # -------------------------------------------------------------------
+  # Exploit CLI service
+  exploit:
+    build: .
+    entrypoint:
+      [
+        "python", "-m", "scripts.exploit_cli",
+        "--urls",
+        "http://finance:5010", "http://medical:5011", "http://educational:5009",
+        "--temperature", "0.2",
+        "--max-iterations", "5",
+        "--threshold", "0.2"
+      ]
+    depends_on:
+      - mock_data
+      - finance
+      - medical
+      - educational
+    env_file:
+      - .env
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=${NEO4J_USER}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+
+volumes:
+  neo4j-data:
