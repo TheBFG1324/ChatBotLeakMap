@@ -1,4 +1,4 @@
-# ChatBotLeakMap
+# ChatbotLeakMap
 
 
 ## Table of Contents
@@ -17,7 +17,7 @@
 
 ## 1. Introduction
 
-**ChatBotLeakMap** is an offensive security proof-of-concept designed to demonstrate and study how AI chatbots can inadvertently leak sensitive information through **prompt injection attacks** — not through a single prompt, but through **multi-step, conversational exploitation chains**.
+**ChatbotLeakMap** is an offensive security proof-of-concept designed to demonstrate and study how AI chatbots can inadvertently leak sensitive information through **prompt injection attacks** — not through a single prompt, but through **multi-step, conversational exploitation chains**.
 
 Many companies, knowingly or not, train their AI systems on real-world data such as internal chat logs, customer conversations, API keys, and sensitive operational information. Once deployed, these AI systems may unknowingly retain and surface fragments of that data when prompted in the right way — making them a potential insider threat.
 
@@ -25,7 +25,7 @@ The risk becomes even more severe with tool-using AIs — chatbots that can exec
 
 With the rapid proliferation of chatbot wrappers and plugins, many developers rely heavily on *system prompts* to define bot behavior and restrict capabilities. Unfortunately, this architectural pattern becomes a vulnerability: if a system prompt can be revealed or manipulated via cleverly crafted user prompts, the entire logic and protection layer can be bypassed.
 
-**ChatBotLeakMap** showcases that risk — not with one-off inputs, but through **chained interactions** that simulate how a persistent attacker might escalate an attack over multiple messages. It automatically:
+**ChatbotLeakMap** showcases that risk — not with one-off inputs, but through **chained interactions** that simulate how a persistent attacker might escalate an attack over multiple messages. It automatically:
 - Crawls and discovers publicly available chatbot APIs
 - Classifies their domain (e.g., medical, finance)
 - Runs controlled multi-step prompt injection attacks
